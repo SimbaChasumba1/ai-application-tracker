@@ -1,0 +1,11 @@
+# Node
+
+node_modules
+
+.next
+
+
+
+# OS
+
+.DS_Store
