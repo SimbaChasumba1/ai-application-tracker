@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { JobApplication } from "../models/JobApplication";
+import { JobApplication } from "../models/JobApplications.js";
 
 import { randomUUID } from "crypto";
 

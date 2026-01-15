@@ -1,65 +1,174 @@
-import Image from "next/image";
-
 export default function Home() {
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+    <div className="min-h-screen bg-gray-950 text-white">
+
+      {/* Header */}
+
+      <header className="flex items-center justify-between px-10 py-6 border-b border-gray-800">
+
+        <h1 className="text-xl font-bold tracking-wide">AI Job Application Tracker</h1>
+
+        <div className="flex items-center gap-4">
+
+          <div className="w-9 h-9 rounded-full bg-gray-700" />
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+      </header>
+
+
+
+      {/* Hero */}
+
+      <section className="px-10 py-12">
+
+        <h2 className="text-4xl font-bold leading-tight max-w-2xl">
+
+          Track your job search like a high-performance system
+
+        </h2>
+
+        <p className="text-gray-400 mt-3 max-w-xl">
+
+          Manage applications, analyze outcomes, and receive AI-powered insights to
+
+          optimize your chances of landing interviews and offers.
+
+        </p>
+
+      </section>
+
+
+
+      {/* Stats */}
+
+      <section className="grid grid-cols-5 gap-4 px-10">
+
+        {[
+
+          ["Total Applications", "42"],
+
+          ["Interviews", "9"],
+
+          ["Offers", "2"],
+
+          ["Rejections", "18"],
+
+          ["Avg Response Time", "6.4 days"]
+
+        ].map(([label, value]) => (
+
+          <div key={label} className="bg-gray-900 p-4 rounded-xl border border-gray-800">
+
+            <p className="text-sm text-gray-400">{label}</p>
+
+            <p className="text-2xl font-semibold mt-1">{value}</p>
+
+          </div>
+
+        ))}
+
+      </section>
+
+
+
+      {/* Main Grid */}
+
+      <section className="grid grid-cols-3 gap-6 px-10 py-10">
+
+        {/* Applications Table */}
+
+        <div className="col-span-2 bg-gray-900 rounded-xl border border-gray-800 p-5">
+
+          <h3 className="font-semibold mb-4">Recent Applications</h3>
+
+          <table className="w-full text-sm">
+
+            <thead className="text-gray-400">
+
+              <tr>
+
+                <th className="text-left">Company</th>
+
+                <th>Role</th>
+
+                <th>Status</th>
+
+                <th>AI Match</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {[
+
+                ["Google", "Software Engineer", "Interviewing", "87%"],
+
+                ["Amazon", "Backend Developer", "Applied", "81%"],
+
+                ["Meta", "Full-Stack Engineer", "Rejected", "78%"],
+
+                ["Stripe", "API Engineer", "Offer", "92%"]
+
+              ].map(([c, r, s, a]) => (
+
+                <tr key={c} className="border-t border-gray-800">
+
+                  <td className="py-2">{c}</td>
+
+                  <td className="text-center">{r}</td>
+
+                  <td className="text-center">{s}</td>
+
+                  <td className="text-center text-emerald-400">{a}</td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
         </div>
-      </main>
+
+
+
+        {/* AI Insights */}
+
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
+
+          <h3 className="font-semibold mb-3">AI Insights</h3>
+
+          <ul className="text-sm text-gray-300 space-y-3">
+
+            <li>• Your profile performs best for Backend & Full-Stack roles.</li>
+
+            <li>• Node.js + SQL keywords increase callbacks by 32%.</li>
+
+            <li>• Suggested follow-up available for 3 active applications.</li>
+
+          </ul>
+
+          <button className="mt-4 w-full py-2 bg-indigo-600 rounded-lg text-sm font-medium">
+
+            Generate Follow-Up
+
+          </button>
+
+        </div>
+
+      </section>
+
     </div>
+
   );
+
 }
+
+
+
