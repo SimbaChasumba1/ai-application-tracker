@@ -6,6 +6,10 @@ import healthRoutes from "./routes/health";
 
 import applicationRoutes from "./routes/applications";
 
+import statsRoutes from "./routes/stats";
+
+
+
 
 
 const app = express();
@@ -21,6 +25,8 @@ app.use(express.json());
 app.use("/health", healthRoutes);
 
 app.use("/applications", applicationRoutes);
+
+app.use("/stats", statsRoutes);
 
 
 
