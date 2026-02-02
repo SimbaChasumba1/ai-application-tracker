@@ -1,28 +1,24 @@
-export type ApplicationStatus =
+import mongoose, { Schema, Document } from "mongoose";
+import { JobApplication } from "./JobApplication.types";
 
-  | "Applied"
+export interface JobApplicationDoc
+  extends JobApplication,
+    Document {}
 
-  | "Interviewing"
+const JobApplicationSchema = new Schema<JobApplicationDoc>({
+  company: { type: String, required: true },
+  role: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ["Applied", "Interviewing", "Offer", "Rejected"],
+    required: true,
+  },
+  appliedDate: { type: String, required: true },
+});
 
-  | "Offer"
+const JobApplicationModel = mongoose.model<JobApplicationDoc>(
+  "JobApplication",
+  JobApplicationSchema
+);
 
-  | "Rejected";
-
-
-
-export interface JobApplication {
-
-  id: string;
-
-  company: string;
-
-  role: string;
-
-  status: ApplicationStatus;
-
-  appliedDate: string;
-
-}
-
-
-
+export default JobApplicationModel;

@@ -3,7 +3,8 @@
 
 
 import { useEffect, useState } from "react";
-import StatsCards from "./components/StatsCards";
+
+import EmptyState from "./components/EmptyState";
 
 
 
@@ -33,8 +34,6 @@ export default function Dashboard() {
 
   useEffect(() => {
 
-    // Health check
-
     fetch("http://localhost:5000/health")
 
       .then(() => setApiStatus("online"))
@@ -42,8 +41,6 @@ export default function Dashboard() {
       .catch(() => setApiStatus("offline"));
 
 
-
-    // Stats
 
     fetch("http://localhost:5000/stats/summary")
 
@@ -69,15 +66,33 @@ export default function Dashboard() {
 
           <h1 className="text-3xl font-bold">AI Job Application Tracker</h1>
 
-          <p className="text-gray-500">Track, analyze and optimize your job search with AI</p>
+          <p className="text-gray-500">
+
+            Track, analyze, and optimize your job search with AI
+
+          </p>
 
         </div>
+
+
 
         <div className="text-sm">
 
           API Status:{" "}
 
-          <span className={`font-semibold ${apiStatus === "online" ? "text-green-600" : "text-red-600"}`}>
+          <span
+
+            className={`font-semibold ${
+
+              apiStatus === "online"
+
+                ? "text-green-600"
+
+                : "text-red-600"
+
+            }`}
+
+          >
 
             {apiStatus.toUpperCase()}
 
@@ -89,21 +104,21 @@ export default function Dashboard() {
 
 
 
-      {/* Stats Cards */}
+      {/* Stats */}
 
       {stats && (
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
 
-          <StatsCards title="Total" value={stats.total} />
+          <StatCard title="Total" value={stats.total} />
 
-          <StatsCards title="Applied" value={stats.applied} />
+          <StatCard title="Applied" value={stats.applied} />
 
-          <StatsCards title="Interviewing" value={stats.interviewing} />
+          <StatCard title="Interviewing" value={stats.interviewing} />
 
-          <StatsCards title="Offers" value={stats.offer} />
+          <StatCard title="Offers" value={stats.offer} />
 
-          <StatsCards title="Rejected" value={stats.rejected} />
+          <StatCard title="Rejected" value={stats.rejected} />
 
         </div>
 
@@ -113,15 +128,17 @@ export default function Dashboard() {
 
       {/* AI Insights Preview */}
 
-      <div className="bg-white rounded-xl shadow p-6 mb-6">
+      <div className="bg-white rounded-xl shadow p-6 mb-8">
 
         <h2 className="text-xl font-semibold mb-2">AI Insights</h2>
 
         <p className="text-gray-600 mb-4">
 
-          Your application history will be analyzed to generate:
+          Get intelligent recommendations based on your application history.
 
         </p>
+
+
 
         <ul className="list-disc list-inside text-gray-600">
 
@@ -129,11 +146,13 @@ export default function Dashboard() {
 
           <li>Resume keyword optimization</li>
 
-          <li>Patterns in rejections vs interviews</li>
+          <li>Success vs rejection pattern analysis</li>
 
           <li>Role targeting recommendations</li>
 
         </ul>
+
+
 
         <button className="mt-4 bg-black text-white px-4 py-2 rounded hover:opacity-80">
 
@@ -145,13 +164,21 @@ export default function Dashboard() {
 
 
 
-      {/* Applications Table Placeholder */}
+      {/* Applications Section */}
 
       <div className="bg-white rounded-xl shadow p-6">
 
-        <h2 className="text-xl font-semibold mb-4">Recent Applications</h2>
+        <h2 className="text-xl font-semibold mb-4">
 
-        <p className="text-gray-500">Application table will appear here.</p>
+          Recent Applications
+
+        </h2>
+
+
+
+        {/* Empty state for now */}
+
+        <EmptyState />
 
       </div>
 
@@ -160,3 +187,22 @@ export default function Dashboard() {
   );
 
 }
+
+
+
+function StatCard({ title, value }: { title: string; value: number }) {
+
+  return (
+
+    <div className="bg-white rounded-xl shadow p-4 text-center">
+
+      <p className="text-sm text-gray-500 uppercase">{title}</p>
+
+      <p className="text-2xl font-bold mt-1">{value}</p>
+
+    </div>
+
+  );
+
+}
+
