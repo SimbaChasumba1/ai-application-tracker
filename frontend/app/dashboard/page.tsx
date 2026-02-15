@@ -10,6 +10,8 @@ import StatusBadge from "./components/StatusBadge";
 
 import StatsSkeleton from "./components/StatsSkeleton";
 
+import StatusFilter from "./components/StatusFilter";
+
 
 
 type Stats = {
@@ -28,17 +30,23 @@ type Stats = {
 
 
 
+type Status = "All" | "Applied" | "Interviewing" | "Offer" | "Rejected";
+
+
+
 export default function Dashboard() {
 
   const [apiStatus, setApiStatus] = useState<"online" | "offline">("offline");
 
   const [stats, setStats] = useState<Stats | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState<Status>("All");
+
 
 
   useEffect(() => {
 
-    // Health check
+    // API health check
 
     fetch("http://localhost:5000/health")
 
@@ -52,7 +60,7 @@ export default function Dashboard() {
 
     fetch("http://localhost:5000/stats/summary")
 
-      .then(res => res.json())
+      .then((res) => res.json())
 
       .then(setStats)
 
@@ -188,15 +196,29 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-xl shadow p-6">
 
-        <h2 className="text-xl font-semibold mb-6">
+        <div className="flex justify-between items-center mb-6">
 
-          Recent Applications
+          <h2 className="text-xl font-semibold">
 
-        </h2>
+            Recent Applications
+
+          </h2>
 
 
 
-        {/* Preview row */}
+          <StatusFilter
+
+            value={statusFilter}
+
+            onChange={setStatusFilter}
+
+          />
+
+        </div>
+
+
+
+        {/* Preview application row */}
 
         <div className="mb-6 flex items-center justify-between border rounded-lg p-4">
 
@@ -243,10 +265,6 @@ function StatCard({ title, value }: { title: string; value: number }) {
   );
 
 }
-
-
-
-
 
 
 
