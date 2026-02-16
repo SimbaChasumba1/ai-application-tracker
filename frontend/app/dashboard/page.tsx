@@ -12,6 +12,8 @@ import StatsSkeleton from "./components/StatsSkeleton";
 
 import StatusFilter from "./components/StatusFilter";
 
+import Modal from "./components/Modal";
+
 
 
 type Stats = {
@@ -41,6 +43,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<Status>("All");
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
 
 
@@ -80,11 +84,7 @@ export default function Dashboard() {
 
         <div>
 
-          <h1 className="text-3xl font-bold">
-
-            AI Job Application Tracker
-
-          </h1>
+          <h1 className="text-3xl font-bold">AI Job Application Tracker</h1>
 
           <p className="text-gray-500">
 
@@ -104,11 +104,7 @@ export default function Dashboard() {
 
             className={`font-semibold ${
 
-              apiStatus === "online"
-
-                ? "text-green-600"
-
-                : "text-red-600"
+              apiStatus === "online" ? "text-green-600" : "text-red-600"
 
             }`}
 
@@ -154,11 +150,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-xl shadow p-6 mb-8">
 
-        <h2 className="text-xl font-semibold mb-2">
-
-          AI Insights
-
-        </h2>
+        <h2 className="text-xl font-semibold mb-2">AI Insights</h2>
 
         <p className="text-gray-600 mb-4">
 
@@ -182,7 +174,13 @@ export default function Dashboard() {
 
 
 
-        <button className="mt-4 bg-black text-white px-4 py-2 rounded hover:opacity-80 transition">
+        <button
+
+          className="mt-4 bg-black text-white px-4 py-2 rounded hover:opacity-80 transition"
+
+          onClick={() => setIsModalOpen(true)}
+
+        >
 
           Generate Insights
 
@@ -198,21 +196,9 @@ export default function Dashboard() {
 
         <div className="flex justify-between items-center mb-6">
 
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold">Recent Applications</h2>
 
-            Recent Applications
-
-          </h2>
-
-
-
-          <StatusFilter
-
-            value={statusFilter}
-
-            onChange={setStatusFilter}
-
-          />
+          <StatusFilter value={statusFilter} onChange={setStatusFilter} />
 
         </div>
 
@@ -242,6 +228,36 @@ export default function Dashboard() {
 
       </div>
 
+
+
+      {/* Modal */}
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+
+        <h3 className="text-lg font-semibold mb-2">AI Insight Preview</h3>
+
+        <p className="text-gray-600 mb-4">
+
+          This is a placeholder for AI-generated recommendations. Connect
+
+          to the backend or OpenAI API to make it live.
+
+        </p>
+
+        <button
+
+          className="bg-black text-white px-4 py-2 rounded hover:opacity-80 transition"
+
+          onClick={() => setIsModalOpen(false)}
+
+        >
+
+          Close
+
+        </button>
+
+      </Modal>
+
     </div>
 
   );
@@ -265,6 +281,10 @@ function StatCard({ title, value }: { title: string; value: number }) {
   );
 
 }
+
+
+
+
 
 
 
