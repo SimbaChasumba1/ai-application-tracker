@@ -6,6 +6,7 @@ import StatusBadge from "./components/StatusBadge";
 import StatsSkeleton from "./components/StatsSkeleton";
 import StatusFilter from "./components/StatusFilter";
 import Modal from "./components/Modal";
+import StatusChart from "./components/StatusChart"; 
 
 type Stats = {
   total: number;
@@ -65,13 +66,25 @@ export default function Dashboard() {
 
       {/* Stats */}
       {stats ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
-          <StatCard title="Total" value={stats.total} />
-          <StatCard title="Applied" value={stats.applied} />
-          <StatCard title="Interviewing" value={stats.interviewing} />
-          <StatCard title="Offers" value={stats.offer} />
-          <StatCard title="Rejected" value={stats.rejected} />
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
+            <StatCard title="Total" value={stats.total} />
+            <StatCard title="Applied" value={stats.applied} />
+            <StatCard title="Interviewing" value={stats.interviewing} />
+            <StatCard title="Offers" value={stats.offer} />
+            <StatCard title="Rejected" value={stats.rejected} />
+          </div>
+
+          {/*  Status Chart Section */}
+          <div className="bg-white rounded-xl shadow p-6 mb-10">
+            <h2 className="text-xl font-semibold mb-4">
+              Application Status Breakdown
+            </h2>
+            <div className="w-full max-w-md mx-auto">
+              <StatusChart stats={stats} />
+            </div>
+          </div>
+        </>
       ) : (
         <StatsSkeleton />
       )}
@@ -124,7 +137,6 @@ export default function Dashboard() {
           <StatusBadge status="Interviewing" />
         </div>
 
-        {/* Empty State */}
         <EmptyState />
       </div>
 
@@ -163,10 +175,3 @@ function StatCard({
     </div>
   );
 }
-
-
-
-
-
-
-
