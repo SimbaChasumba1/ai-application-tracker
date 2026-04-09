@@ -63,10 +63,17 @@ export default function Dashboard() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Load applications and stats with token if logged in
   const loadData = async () => {
-    // Send auth token if logged in
-    const headers: Record<string, string> = {};
-    if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+    if (!session) {
+      setApplications([]);
+      setStats({ total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
+      return;
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${session.access_token}`,
+    };
 
     try {
       const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, { headers }).then(res => res.json());
@@ -81,6 +88,7 @@ export default function Dashboard() {
     }
   };
 
+  // Reload data whenever session changes
   useEffect(() => {
     loadData();
   }, [session]);
@@ -116,17 +124,16 @@ export default function Dashboard() {
     try {
       const res = await axios.post("/api/generate-text", { prompt: aiPrompt });
       setAiResponse(res.data.response);
-    } catch (err) {
+    } catch {
       setAiError("Failed to generate text. Try again.");
     } finally {
       setAiLoading(false);
     }
   };
 
-  const filteredApps =
-    statusFilter === "All"
-      ? applications
-      : applications.filter(a => a.status === statusFilter);
+  const filteredApps = statusFilter === "All"
+    ? applications
+    : applications.filter(a => a.status === statusFilter);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
@@ -135,8 +142,9 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
+          disabled={!session}
           className={`px-4 py-2 rounded transition ${
-            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600"
+            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
           }`}
         >
           + Add Application
@@ -179,11 +187,11 @@ export default function Dashboard() {
                 <p className="font-semibold">{app.role}</p>
                 <p className="text-gray-500">{app.company}</p>
               </div>
-
               <div className="flex gap-4 items-center">
                 <StatusBadge status={app.status} />
                 <button
                   onClick={() => handleDelete(app.id)}
+                  disabled={!session}
                   className={`hover:underline ${!session ? "text-gray-400 cursor-not-allowed" : "text-red-500"}`}
                 >
                   Delete
@@ -192,7 +200,7 @@ export default function Dashboard() {
             </div>
           ))
         ) : (
-          <EmptyState onAddClick={() => setIsAddModalOpen(true)} />
+          <EmptyState onAddClick={() => session && setIsAddModalOpen(true)} />
         )}
       </div>
 
@@ -205,13 +213,24 @@ export default function Dashboard() {
           onChange={e => setAiPrompt(e.target.value)}
           className="w-full p-3 border rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           rows={4}
+          disabled={!session}
         />
         <button
           onClick={handleGenerateAI}
-          className={`px-4 py-2 rounded transition ${!session ? "bg-gray-300 text-gray-600" : "bg-indigo-600 text-white hover:bg-indigo-500"}`}
+          disabled={aiLoading || !session}
+          className={`px-4 py-2 rounded transition ${
+            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+          }`}
         >
           {aiLoading ? "Generating..." : "Ask Assistant"}
         </button>
+        {aiError && <p className="text-red-500 mt-2">{aiError}</p>}
+        {aiResponse && (
+          <div className="mt-4 p-4 bg-gray-100 rounded">
+            <h3 className="font-semibold mb-2">Assistant's Response:</h3>
+            <p>{aiResponse}</p>
+          </div>
+        )}
       </div>
 
       {/* ADD MODAL */}
@@ -222,15 +241,21 @@ export default function Dashboard() {
             placeholder="Role"
             value={formData.role}
             onChange={e => setFormData({ ...formData, role: e.target.value })}
+            className="border p-2 w-full rounded"
+            disabled={!session}
           />
           <input
             placeholder="Company"
             value={formData.company}
             onChange={e => setFormData({ ...formData, company: e.target.value })}
+            className="border p-2 w-full rounded"
+            disabled={!session}
           />
           <select
             value={formData.status}
             onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
+            className="border p-2 w-full rounded"
+            disabled={!session}
           >
             <option value="Applied">Applied</option>
             <option value="Interviewing">Interviewing</option>
@@ -239,7 +264,10 @@ export default function Dashboard() {
           </select>
           <button
             onClick={handleAddApplication}
-            className={`${!session ? "bg-gray-300 text-gray-600" : "bg-indigo-600 text-white hover:bg-indigo-500"} w-full p-2 rounded`}
+            disabled={!session}
+            className={`w-full p-2 rounded transition ${
+              session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
           >
             Save Application
           </button>
