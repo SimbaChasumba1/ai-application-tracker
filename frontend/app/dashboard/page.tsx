@@ -30,7 +30,13 @@ type Application = {
 };
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    applied: 0,
+    interviewing: 0,
+    offer: 0,
+    rejected: 0,
+  });
   const [applications, setApplications] = useState<Application[]>([]);
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -48,7 +54,6 @@ export default function Dashboard() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Check session
   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -64,20 +69,25 @@ export default function Dashboard() {
   }, []);
 
   const loadData = async () => {
-    const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`).then(res => res.json());
-    setApplications(apps);
+    try {
+      const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`).then(res => res.json());
+      setApplications(apps || []);
 
-    const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`).then(res => res.json());
-    setStats(statsData);
+      const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`).then(res => res.json());
+      setStats(statsData || { total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
+    } catch (err) {
+      // fallback for guests or if server fails
+      setApplications([]);
+      setStats({ total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
+    }
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  // Only allow actions if logged in
   const handleAddApplication = async () => {
-    if (!session) return alert("You must be logged in to save applications!");
+    if (!session) return alert("Login to add an application!");
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -89,13 +99,13 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!session) return alert("You must be logged in to delete applications!");
+    if (!session) return alert("Login to delete applications!");
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, { method: "DELETE" });
     await loadData();
   };
 
   const handleGenerateAI = async () => {
-    if (!session) return alert("You must be logged in to use AI assistant!");
+    if (!session) return alert("Login to use AI assistant!");
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiError(null);
@@ -111,10 +121,7 @@ export default function Dashboard() {
     }
   };
 
-  const filteredApps =
-    statusFilter === "All"
-      ? applications
-      : applications.filter(a => a.status === statusFilter);
+  const filteredApps = statusFilter === "All" ? applications : applications.filter(a => a.status === statusFilter);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
@@ -123,36 +130,27 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          disabled={!session}
-          className={`px-4 py-2 rounded ${
-            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-          } transition`}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
         >
           + Add Application
         </button>
       </div>
 
       {/* STATS */}
-      {stats ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <StatCard title="Total" value={stats.total} />
-            <StatCard title="Applied" value={stats.applied} />
-            <StatCard title="Interviewing" value={stats.interviewing} />
-            <StatCard title="Offers" value={stats.offer} />
-            <StatCard title="Rejected" value={stats.rejected} />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <StatCard title="Total" value={stats.total} />
+        <StatCard title="Applied" value={stats.applied} />
+        <StatCard title="Interviewing" value={stats.interviewing} />
+        <StatCard title="Offers" value={stats.offer} />
+        <StatCard title="Rejected" value={stats.rejected} />
+      </div>
 
-          <div className="flex justify-center mb-10">
-            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
-              <h2 className="font-semibold text-lg mb-4 text-center">Application Status</h2>
-              <StatusChart stats={stats} />
-            </div>
-          </div>
-        </>
-      ) : (
-        <StatsSkeleton />
-      )}
+      <div className="flex justify-center mb-10">
+        <div className="bg-white p-6 rounded shadow w-full max-w-lg">
+          <h2 className="font-semibold text-lg mb-4 text-center">Application Status</h2>
+          <StatusChart stats={stats} />
+        </div>
+      </div>
 
       {/* APPLICATIONS */}
       <div className="bg-white p-6 rounded shadow mb-8">
@@ -171,18 +169,14 @@ export default function Dashboard() {
 
               <div className="flex gap-4 items-center">
                 <StatusBadge status={app.status} />
-                <button
-                  onClick={() => handleDelete(app.id)}
-                  disabled={!session}
-                  className={`hover:underline ${!session ? "text-gray-400 cursor-not-allowed" : "text-red-500"}`}
-                >
+                <button onClick={() => handleDelete(app.id)} className="text-red-500 hover:underline">
                   Delete
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <EmptyState onAddClick={() => session && setIsAddModalOpen(true)} />
+          <EmptyState onAddClick={() => setIsAddModalOpen(true)} />
         )}
       </div>
 
@@ -195,14 +189,11 @@ export default function Dashboard() {
           onChange={e => setAiPrompt(e.target.value)}
           className="w-full p-3 border rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           rows={4}
-          disabled={!session}
         />
         <button
           onClick={handleGenerateAI}
-          disabled={aiLoading || !session}
-          className={`px-4 py-2 rounded transition ${
-            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-          }`}
+          disabled={aiLoading}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
         >
           {aiLoading ? "Generating..." : "Ask Assistant"}
         </button>
@@ -224,20 +215,17 @@ export default function Dashboard() {
             value={formData.role}
             onChange={e => setFormData({ ...formData, role: e.target.value })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           />
           <input
             placeholder="Company"
             value={formData.company}
             onChange={e => setFormData({ ...formData, company: e.target.value })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           />
           <select
             value={formData.status}
             onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           >
             <option value="Applied">Applied</option>
             <option value="Interviewing">Interviewing</option>
@@ -246,10 +234,7 @@ export default function Dashboard() {
           </select>
           <button
             onClick={handleAddApplication}
-            disabled={!session}
-            className={`w-full p-2 rounded transition ${
-              session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
+            className="bg-indigo-600 text-white p-2 w-full rounded hover:bg-indigo-500 transition"
           >
             Save Application
           </button>
