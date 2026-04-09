@@ -29,6 +29,8 @@ type Application = {
   status: Status;
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -42,7 +44,6 @@ export default function Dashboard() {
     status: "Applied" as Status,
   });
 
-  // AI State
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -72,12 +73,12 @@ export default function Dashboard() {
     try {
       const headers = { Authorization: `Bearer ${session.access_token}` };
 
-      const appsRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, { headers });
+      const appsRes = await fetch(`${API_URL}/applications`, { headers });
       if (!appsRes.ok) throw new Error("Failed to fetch applications");
       const apps = await appsRes.json();
       setApplications(apps);
 
-      const statsRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`, { headers });
+      const statsRes = await fetch(`${API_URL}/stats/summary`, { headers });
       if (!statsRes.ok) throw new Error("Failed to fetch stats");
       const statsData = await statsRes.json();
       setStats(statsData);
@@ -94,9 +95,10 @@ export default function Dashboard() {
 
   // --- HANDLERS ---
   const handleAddApplication = async () => {
-    if (!session) return alert("Login to add applications");
+    if (!session) return alert("Login to add application");
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
+      await fetch(`${API_URL}/applications`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify(formData),
@@ -105,26 +107,28 @@ export default function Dashboard() {
       setFormData({ role: "", company: "", status: "Applied" });
       await loadData();
     } catch {
-      alert("Failed to add application. Try again.");
+      alert("Failed to add application");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!session) return alert("Login to delete applications");
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, {
+      await fetch(`${API_URL}/applications/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       await loadData();
     } catch {
-      alert("Failed to delete application. Try again.");
+      alert("Failed to delete application");
     }
   };
 
   const handleGenerateAI = async () => {
     if (!session) return alert("Login to use job assistant");
     if (!aiPrompt.trim()) return;
+
     setAiLoading(true);
     setAiError(null);
     setAiResponse(null);
@@ -139,19 +143,17 @@ export default function Dashboard() {
     }
   };
 
-  const filteredApps = statusFilter === "All"
-    ? applications
-    : applications.filter(a => a.status === statusFilter);
+  const filteredApps =
+    statusFilter === "All" ? applications : applications.filter(a => a.status === statusFilter);
 
-  // --- RENDER ---
   return (
-    <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-10 text-gray-900">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         <button
-          onClick={() => session ? setIsAddModalOpen(true) : alert("Login to add applications")}
-          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
+          onClick={() => (session ? setIsAddModalOpen(true) : alert("Login to add application"))}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
         >
           + Add Application
         </button>
@@ -193,10 +195,11 @@ export default function Dashboard() {
                 <p className="font-semibold">{app.role}</p>
                 <p className="text-gray-500">{app.company}</p>
               </div>
+
               <div className="flex gap-4 items-center">
                 <StatusBadge status={app.status} />
                 <button
-                  onClick={() => session ? handleDelete(app.id) : alert("Login to delete applications")}
+                  onClick={() => (session ? handleDelete(app.id) : alert("Login to delete applications"))}
                   className="text-red-500 hover:underline"
                 >
                   Delete
@@ -205,7 +208,7 @@ export default function Dashboard() {
             </div>
           ))
         ) : (
-          <EmptyState onAddClick={() => session ? setIsAddModalOpen(true) : alert("Login to add applications")} />
+          <EmptyState onAddClick={() => (session ? setIsAddModalOpen(true) : alert("Login to add application"))} />
         )}
       </div>
 
@@ -221,7 +224,7 @@ export default function Dashboard() {
         />
         <button
           onClick={handleGenerateAI}
-          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
         >
           {aiLoading ? "Generating..." : "Ask Assistant"}
         </button>
@@ -262,7 +265,7 @@ export default function Dashboard() {
           </select>
           <button
             onClick={handleAddApplication}
-            className="w-full p-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
+            className="bg-indigo-600 text-white p-2 w-full rounded hover:bg-indigo-500 transition"
           >
             Save Application
           </button>
