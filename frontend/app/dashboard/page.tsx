@@ -8,6 +8,8 @@ import StatusFilter from "./components/StatusFilter";
 import StatusChart from "./components/StatusChart";
 import StatsSkeleton from "./components/StatsSkeleton";
 import axios from "axios";
+import { supabase } from "../../lib/supabaseClient"; // Make sure path is correct
+import { useRouter } from "next/navigation";
 
 type Status = "Applied" | "Interviewing" | "Offer" | "Rejected";
 
@@ -31,16 +33,13 @@ type Application = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [session, setSession] = useState<any>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const [formData, setFormData] = useState({
-    role: "",
-    company: "",
-    status: "Applied" as Status,
-  });
+  const [formData, setFormData] = useState({ role: "", company: "", status: "Applied" as Status });
 
   // AI State
   const [aiPrompt, setAiPrompt] = useState("");
@@ -48,7 +47,26 @@ export default function Dashboard() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Check session
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      if (!data.session) router.push("/login"); // Redirect if not logged in
+    };
+
+    checkSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      if (!newSession) router.push("/login"); // Redirect if logged out
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, [router]);
+
   const loadData = async () => {
+    if (!session) return;
     try {
       const apps = await fetch(`${API_URL}/applications`).then(res => res.json());
       setApplications(apps);
@@ -62,15 +80,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [session]);
 
   const handleAddApplication = async () => {
+    if (!session) return;
     const res = await fetch(`${API_URL}/applications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
     });
-
     if (res.ok) {
       setIsAddModalOpen(false);
       setFormData({ role: "", company: "", status: "Applied" });
@@ -79,6 +97,7 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!session) return;
     const res = await fetch(`${API_URL}/applications/${id}`, { method: "DELETE" });
     if (res.ok) await loadData();
   };
@@ -103,6 +122,10 @@ export default function Dashboard() {
     statusFilter === "All"
       ? applications
       : applications.filter(a => a.status === statusFilter);
+
+  if (!session) {
+    return <div className="min-h-screen flex items-center justify-center">Redirecting to login...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-10 text-gray-900">
