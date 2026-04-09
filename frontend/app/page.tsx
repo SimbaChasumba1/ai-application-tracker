@@ -20,10 +20,12 @@ export default function Home() {
               Open Dashboard
             </a>
 
-            <a
-              href="#"
-              className="px-6 py-3 border border-slate-600 rounded-lg hover:bg-slate-800 transition"
-            >
+           <a
+  href="https://github.com/SimbaChasumba1/ai-application-tracker"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="px-6 py-3 border border-slate-600 rounded-lg hover:bg-slate-800 transition"
+           >
               View Source
             </a>
           </div>
