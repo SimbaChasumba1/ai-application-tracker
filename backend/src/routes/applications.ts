@@ -1,56 +1,84 @@
-import { Router } from "express";
+import express from "express";
+import { supabase } from "../lib/supabase";
 
-import { JobApplication } from "../models/JobApplications.js";
+const router = express.Router();
 
-import { randomUUID } from "crypto";
+/**
+ GET Applications
+*/
+router.get("/", async (req, res) => {
+  const { data, error } =
+    await supabase
+      .from("applications")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      });
 
+  if (error) {
+    return res
+      .status(500)
+      .json({ error: error.message });
+  }
 
+  res.json(data);
+});
 
-const router = Router();
-
-
-
-const applications: JobApplication[] = [];
-
-
-
-router.post("/", (req, res) => {
-
-  const { company, role } = req.body;
-
-
-
-  const app: JobApplication = {
-
-    id: randomUUID(),
-
+/**
+ POST Application
+*/
+router.post("/", async (req, res) => {
+  const {
     company,
-
     role,
+    status,
+    job_url,
+    notes,
+    salary_range,
+  } = req.body;
 
-    status: "Applied",
+  const { data, error } =
+    await supabase
+      .from("applications")
+      .insert([
+        {
+          company,
+          role,
+          status,
+          job_url,
+          notes,
+          salary_range,
+        },
+      ])
+      .select()
+      .single();
 
-    appliedDate: new Date().toISOString(),
+  if (error) {
+    return res
+      .status(500)
+      .json({ error: error.message });
+  }
 
-  };
-
-
-
-  applications.push(app);
-
-  res.status(201).json(app);
-
+  res.status(201).json(data);
 });
 
+/**
+ DELETE Application
+*/
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
 
+  const { data, error } = await supabase
+    .from("applications")
+    .delete()
+    .eq("id", id)
+    .select();
 
-router.get("/", (_req, res) => {
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
-  res.json(applications);
-
+  res.json({ success: true });
 });
-
-
 
 export default router;
-

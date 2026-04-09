@@ -1,476 +1,236 @@
 "use client";
 
-
-
 import { useEffect, useState } from "react";
-
-import EmptyState from "./components/EmptyState";
-
 import StatusBadge from "./components/StatusBadge";
-
-import StatsSkeleton from "./components/StatsSkeleton";
-
-import StatusFilter from "./components/StatusFilter";
-
+import EmptyState from "./components/EmptyState";
 import Modal from "./components/Modal";
-
+import StatusFilter from "./components/StatusFilter";
 import StatusChart from "./components/StatusChart";
+import StatsSkeleton from "./components/StatsSkeleton";
+import axios from "axios";
 
-
+type Status = "Applied" | "Interviewing" | "Offer" | "Rejected";
 
 type Stats = {
-
   total: number;
-
   applied: number;
-
   interviewing: number;
-
   offer: number;
-
   rejected: number;
-
 };
 
+type FilterStatus = Status | "All";
 
-
-type Status = "All" | "Applied" | "Interviewing" | "Offer" | "Rejected";
-
-
+type Application = {
+  id: string;
+  role: string;
+  company: string;
+  status: Status;
+};
 
 export default function Dashboard() {
-
-  const [apiStatus, setApiStatus] = useState<"online" | "offline">("offline");
-
   const [stats, setStats] = useState<Stats | null>(null);
-
-  const [statusFilter, setStatusFilter] = useState<Status>("All");
-
-
-
-  const [isInsightModalOpen, setIsInsightModalOpen] = useState(false);
-
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-
-
   const [formData, setFormData] = useState({
-
     role: "",
-
     company: "",
-
-    status: "Applied",
-
+    status: "Applied" as Status,
   });
 
+  // AI State
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
+  const loadData = async () => {
+    const apps = await fetch("http://localhost:5000/applications").then(res => res.json());
+    setApplications(apps);
+
+    const statsData = await fetch("http://localhost:5000/stats/summary").then(res => res.json());
+    setStats(statsData);
+  };
 
   useEffect(() => {
-
-    fetch("http://localhost:5000/health")
-
-      .then(() => setApiStatus("online"))
-
-      .catch(() => setApiStatus("offline"));
-
-
-
-    fetch("http://localhost:5000/stats/summary")
-
-      .then((res) => res.json())
-
-      .then(setStats)
-
-      .catch(() => setStats(null));
-
+    loadData();
   }, []);
 
-
-
-  const handleInputChange = (
-
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-
-  ) => {
-
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  };
-
-
-
-  const handleAddApplication = () => {
-
-    console.log("New Application:", formData);
-
+  const handleAddApplication = async () => {
+    await fetch("http://localhost:5000/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
     setIsAddModalOpen(false);
-
+    setFormData({ role: "", company: "", status: "Applied" });
+    await loadData();
   };
 
+  const handleDelete = async (id: string) => {
+    await fetch(`http://localhost:5000/applications/${id}`, { method: "DELETE" });
+    await loadData();
+  };
 
+  const handleGenerateAI = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiResponse(null);
+
+    try {
+      const res = await axios.post("http://localhost:3000/generate-text", { prompt: aiPrompt });
+      setAiResponse(res.data.response);
+    } catch (err) {
+      setAiError("Failed to generate text. Try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const filteredApps =
+    statusFilter === "All"
+      ? applications
+      : applications.filter(a => a.status === statusFilter);
 
   return (
-
-    <div className="min-h-screen bg-gray-50 p-10">
-
-      {/* Header */}
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
-
-        <div>
-
-          <h1 className="text-3xl font-bold text-gray-900">
-
-            AI Job Application Tracker
-
-          </h1>
-
-          <p className="text-gray-500 mt-1">
-
-            Track, analyze, and optimize your job search with AI
-
-          </p>
-
-        </div>
-
-
-
-        <div className="flex items-center gap-4 mt-4 md:mt-0">
-
-          <button
-
-            className="bg-black text-white px-4 py-2 rounded hover:opacity-80 transition"
-
-            onClick={() => setIsAddModalOpen(true)}
-
-          >
-
-            + Add Application
-
-          </button>
-
-
-
-          <div className="text-sm">
-
-            API Status:{" "}
-
-            <span
-
-              className={`font-semibold ${
-
-                apiStatus === "online"
-
-                  ? "text-green-600"
-
-                  : "text-red-600"
-
-              }`}
-
-            >
-
-              {apiStatus.toUpperCase()}
-
-            </span>
-
-          </div>
-
-        </div>
-
+    <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
+        >
+          + Add Application
+        </button>
       </div>
 
-
-
-      {/* Stats */}
-
+      {/* STATS */}
       {stats ? (
-
         <>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
-
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <StatCard title="Total" value={stats.total} />
-
             <StatCard title="Applied" value={stats.applied} />
-
             <StatCard title="Interviewing" value={stats.interviewing} />
-
             <StatCard title="Offers" value={stats.offer} />
-
             <StatCard title="Rejected" value={stats.rejected} />
-
           </div>
 
-
-
-          <div className="bg-white rounded-xl shadow p-6 mb-10">
-
-            <h2 className="text-xl font-semibold mb-4">
-
-              Application Status Breakdown
-
-            </h2>
-
-            <div className="w-full max-w-md mx-auto">
-
+          <div className="flex justify-center mb-10">
+            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
+              <h2 className="font-semibold text-lg mb-4 text-center">Application Status</h2>
               <StatusChart stats={stats} />
-
             </div>
-
           </div>
-
         </>
-
       ) : (
-
         <StatsSkeleton />
-
       )}
 
-
-
-      {/* AI Insights */}
-
-      <div className="bg-white rounded-xl shadow p-6 mb-10">
-
-        <div className="flex justify-between items-center">
-
-          <div>
-
-            <h2 className="text-xl font-semibold mb-2">
-
-              AI Insights
-
-            </h2>
-
-            <p className="text-gray-600">
-
-              Intelligent recommendations to improve response rates.
-
-            </p>
-
-          </div>
-
-
-
-          <button
-
-            className="bg-black text-white px-4 py-2 rounded hover:opacity-80 transition"
-
-            onClick={() => setIsInsightModalOpen(true)}
-
-          >
-
-            Generate Insights
-
-          </button>
-
+      {/* APPLICATIONS */}
+      <div className="bg-white p-6 rounded shadow mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+          <h2 className="font-semibold text-lg mb-2 md:mb-0">Applications</h2>
+          <StatusFilter value={statusFilter} onChange={setStatusFilter} />
         </div>
 
+        {filteredApps.length > 0 ? (
+          filteredApps.map(app => (
+            <div key={app.id} className="flex justify-between border p-4 mt-4 rounded items-center">
+              <div>
+                <p className="font-semibold">{app.role}</p>
+                <p className="text-gray-500">{app.company}</p>
+              </div>
+
+              <div className="flex gap-4 items-center">
+                <StatusBadge status={app.status} />
+                <button
+                  onClick={() => handleDelete(app.id)}
+                  className="text-red-500 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <EmptyState onAddClick={() => setIsAddModalOpen(true)} />
+        )}
       </div>
 
-
-
-      {/* Applications */}
-
-      <div className="bg-white rounded-xl shadow p-6">
-
-        <div className="flex justify-between items-center mb-6">
-
-          <h2 className="text-xl font-semibold">
-
-            Recent Applications
-
-          </h2>
-
-          <StatusFilter
-
-            value={statusFilter}
-
-            onChange={setStatusFilter}
-
-          />
-
-        </div>
-
-
-
-        <div className="mb-4 flex items-center justify-between border rounded-lg p-4">
-
-          <div>
-
-            <p className="font-medium">Frontend Developer</p>
-
-            <p className="text-sm text-gray-500">Acme Corp</p>
-
+      {/* AI Assistant */}
+      <div className="bg-white p-6 rounded shadow mb-8">
+        <h2 className="text-xl font-semibold mb-4">Ask Job Assistant</h2>
+        <textarea
+          placeholder="Type your question..."
+          value={aiPrompt}
+          onChange={e => setAiPrompt(e.target.value)}
+          className="w-full p-3 border rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          rows={4}
+        />
+        <button
+          onClick={handleGenerateAI}
+          disabled={aiLoading}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
+        >
+          {aiLoading ? "Generating..." : "Ask Assistant"}
+        </button>
+        {aiError && <p className="text-red-500 mt-2">{aiError}</p>}
+        {aiResponse && (
+          <div className="mt-4 p-4 bg-gray-100 rounded">
+            <h3 className="font-semibold mb-2">Assistant's Response:</h3>
+            <p>{aiResponse}</p>
           </div>
-
-          <StatusBadge status="Interviewing" />
-
-        </div>
-
-
-
-        <EmptyState />
-
+        )}
       </div>
 
-
-
-      {/* AI Insight Modal */}
-
-      <Modal
-
-        isOpen={isInsightModalOpen}
-
-        onClose={() => setIsInsightModalOpen(false)}
-
-      >
-
-        <h3 className="text-lg font-semibold mb-2">
-
-          AI Insight Preview
-
-        </h3>
-
-        <p className="text-gray-600 mb-4">
-
-          AI-generated recommendations will appear here.
-
-        </p>
-
-      </Modal>
-
-
-
-      {/* Add Application Modal */}
-
-      <Modal
-
-        isOpen={isAddModalOpen}
-
-        onClose={() => setIsAddModalOpen(false)}
-
-      >
-
-        <h3 className="text-lg font-semibold mb-4">
-
-          Add New Application
-
-        </h3>
-
-
-
-        <div className="space-y-4">
-
+      {/* ADD MODAL */}
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)}>
+        <h3 className="text-lg font-semibold mb-4">Add Application</h3>
+        <div className="space-y-3">
           <input
-
-            name="role"
-
             placeholder="Role"
-
             value={formData.role}
-
-            onChange={handleInputChange}
-
-            className="w-full border rounded px-3 py-2"
-
+            onChange={e => setFormData({ ...formData, role: e.target.value })}
+            className="border p-2 w-full rounded"
           />
-
-
-
           <input
-
-            name="company"
-
             placeholder="Company"
-
             value={formData.company}
-
-            onChange={handleInputChange}
-
-            className="w-full border rounded px-3 py-2"
-
+            onChange={e => setFormData({ ...formData, company: e.target.value })}
+            className="border p-2 w-full rounded"
           />
-
-
-
           <select
-
-            name="status"
-
             value={formData.status}
-
-            onChange={handleInputChange}
-
-            className="w-full border rounded px-3 py-2"
-
+            onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
+            className="border p-2 w-full rounded"
           >
-
-            <option>Applied</option>
-
-            <option>Interviewing</option>
-
-            <option>Offer</option>
-
-            <option>Rejected</option>
-
+            <option value="Applied">Applied</option>
+            <option value="Interviewing">Interviewing</option>
+            <option value="Offer">Offer</option>
+            <option value="Rejected">Rejected</option>
           </select>
-
-
-
           <button
-
             onClick={handleAddApplication}
-
-            className="w-full bg-black text-white py-2 rounded hover:opacity-80 transition"
-
+            className="bg-indigo-600 text-white p-2 w-full rounded hover:bg-indigo-500 transition"
           >
-
             Save Application
-
           </button>
-
         </div>
-
       </Modal>
-
     </div>
-
   );
-
 }
 
-
-
-function StatCard({
-
-  title,
-
-  value,
-
-}: {
-
-  title: string;
-
-  value: number;
-
-}) {
-
+// STAT CARD
+function StatCard({ title, value }: { title: string; value: number }) {
   return (
-
-    <div className="bg-white rounded-xl shadow p-4 text-center">
-
-      <p className="text-sm text-gray-500 uppercase">{title}</p>
-
-      <p className="text-2xl font-bold mt-1">{value}</p>
-
+    <div className="bg-white p-4 text-center rounded shadow">
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-xl font-bold">{value}</p>
     </div>
-
   );
-
 }
-
-
-

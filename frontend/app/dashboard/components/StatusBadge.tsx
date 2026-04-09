@@ -1,8 +1,4 @@
-type Status =
-  | "Applied"
-  | "Interviewing"
-  | "Offer"
-  | "Rejected";
+import { Status } from "../types";
 
 export default function StatusBadge({ status }: { status: Status }) {
   const styles: Record<Status, string> = {

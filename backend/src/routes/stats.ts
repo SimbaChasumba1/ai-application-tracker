@@ -1,43 +1,39 @@
-import { Router } from "express";
+import express from "express";
+import { supabase } from "../lib/supabase";
 
-import { JobApplication } from "../models/JobApplications";
-
-
-
-const router = Router();
-
-
+const router = express.Router();
 
 router.get("/summary", async (req, res) => {
+  const { data, error } =
+    await supabase
+      .from("applications")
+      .select("status");
 
-  const total = await JobApplication.countDocuments();
+  if (error) {
+    return res
+      .status(500)
+      .json({ error: error.message });
+  }
 
-  const applied = await JobApplication.countDocuments({ status: "Applied" });
+  const apps = data || [];
 
-  const interviewing = await JobApplication.countDocuments({ status: "Interviewing" });
+  const summary = {
+    total: apps.length,
+    applied: apps.filter(
+      (a) => a.status === "Applied"
+    ).length,
+    interviewing: apps.filter(
+      (a) => a.status === "Interviewing"
+    ).length,
+    offer: apps.filter(
+      (a) => a.status === "Offer"
+    ).length,
+    rejected: apps.filter(
+      (a) => a.status === "Rejected"
+    ).length,
+  };
 
-  const offer = await JobApplication.countDocuments({ status: "Offer" });
-
-  const rejected = await JobApplication.countDocuments({ status: "Rejected" });
-
-
-
-  res.json({
-
-    total,
-
-    applied,
-
-    interviewing,
-
-    offer,
-
-    rejected
-
-  });
-
+  res.json(summary);
 });
-
-
 
 export default router;
