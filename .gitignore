@@ -4,6 +4,10 @@ node_modules
 
 .next
 
+.env
+.env.local
+backend/.env
+frontend/.env.local
 
 
 # OS
