@@ -21,9 +21,7 @@ export default function Navbar() {
 
     getSession();
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
@@ -34,41 +32,39 @@ export default function Navbar() {
 
   return (
     <nav className="w-full bg-white border-b border-gray-200 px-4 md:px-8 py-4 shadow-sm">
-      
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        
+      <div className="flex items-center justify-between">
         {/* LOGO */}
-        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-9 h-9 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0">
             AI
           </div>
-          <span className="font-semibold text-sm sm:text-lg text-gray-900 break-words">
+          <span className="font-semibold text-sm sm:text-lg text-gray-900 truncate">
             AIApplicationTracker
           </span>
         </Link>
 
         {/* LINKS */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm font-medium text-gray-700">
-          <Link href="/" className="hover:text-indigo-600">
+        <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-medium text-gray-700">
+          <Link href="/" className="hover:text-indigo-600 whitespace-nowrap">
             Home
           </Link>
-          <Link href="/dashboard" className="hover:text-indigo-600">
+          <Link href="/dashboard" className="hover:text-indigo-600 whitespace-nowrap">
             Dashboard
           </Link>
 
           {!session ? (
             <>
-              <Link href="/login" className="hover:text-indigo-600">
+              <Link href="/login" className="hover:text-indigo-600 whitespace-nowrap">
                 Login
               </Link>
-              <Link href="/signup" className="hover:text-indigo-600">
+              <Link href="/signup" className="hover:text-indigo-600 whitespace-nowrap">
                 Sign Up
               </Link>
             </>
           ) : (
             <button
               onClick={handleLogout}
-              className="text-red-500 hover:text-red-600"
+              className="text-red-500 hover:text-red-600 whitespace-nowrap"
             >
               Logout
             </button>
