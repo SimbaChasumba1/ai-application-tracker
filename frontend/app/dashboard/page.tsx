@@ -30,13 +30,7 @@ type Application = {
 };
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats>({
-    total: 0,
-    applied: 0,
-    interviewing: 0,
-    offer: 0,
-    rejected: 0,
-  });
+  const [stats, setStats] = useState<Stats | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("All");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -54,6 +48,7 @@ export default function Dashboard() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Check session
   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
@@ -62,6 +57,7 @@ export default function Dashboard() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      loadData(); // refresh data after login/logout
     });
 
     getSession();
@@ -71,12 +67,11 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`).then(res => res.json());
-      setApplications(apps || []);
+      setApplications(apps);
 
       const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`).then(res => res.json());
-      setStats(statsData || { total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
+      setStats(statsData);
     } catch (err) {
-      // fallback for guests or if server fails
       setApplications([]);
       setStats({ total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
     }
@@ -87,7 +82,7 @@ export default function Dashboard() {
   }, []);
 
   const handleAddApplication = async () => {
-    if (!session) return alert("Login to add an application!");
+    if (!session) return alert("Login to add applications");
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,13 +94,13 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!session) return alert("Login to delete applications!");
+    if (!session) return alert("Login to delete applications");
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, { method: "DELETE" });
     await loadData();
   };
 
   const handleGenerateAI = async () => {
-    if (!session) return alert("Login to use AI assistant!");
+    if (!session) return alert("Login to use AI assistant");
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiError(null);
@@ -121,7 +116,10 @@ export default function Dashboard() {
     }
   };
 
-  const filteredApps = statusFilter === "All" ? applications : applications.filter(a => a.status === statusFilter);
+  const filteredApps =
+    statusFilter === "All"
+      ? applications
+      : applications.filter(a => a.status === statusFilter);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
@@ -137,20 +135,26 @@ export default function Dashboard() {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <StatCard title="Total" value={stats.total} />
-        <StatCard title="Applied" value={stats.applied} />
-        <StatCard title="Interviewing" value={stats.interviewing} />
-        <StatCard title="Offers" value={stats.offer} />
-        <StatCard title="Rejected" value={stats.rejected} />
-      </div>
+      {stats ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+            <StatCard title="Total" value={stats.total} />
+            <StatCard title="Applied" value={stats.applied} />
+            <StatCard title="Interviewing" value={stats.interviewing} />
+            <StatCard title="Offers" value={stats.offer} />
+            <StatCard title="Rejected" value={stats.rejected} />
+          </div>
 
-      <div className="flex justify-center mb-10">
-        <div className="bg-white p-6 rounded shadow w-full max-w-lg">
-          <h2 className="font-semibold text-lg mb-4 text-center">Application Status</h2>
-          <StatusChart stats={stats} />
-        </div>
-      </div>
+          <div className="flex justify-center mb-10">
+            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
+              <h2 className="font-semibold text-lg mb-4 text-center">Application Status</h2>
+              <StatusChart stats={stats} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <StatsSkeleton />
+      )}
 
       {/* APPLICATIONS */}
       <div className="bg-white p-6 rounded shadow mb-8">
@@ -169,7 +173,10 @@ export default function Dashboard() {
 
               <div className="flex gap-4 items-center">
                 <StatusBadge status={app.status} />
-                <button onClick={() => handleDelete(app.id)} className="text-red-500 hover:underline">
+                <button
+                  onClick={() => handleDelete(app.id)}
+                  className="text-red-500 hover:underline"
+                >
                   Delete
                 </button>
               </div>
