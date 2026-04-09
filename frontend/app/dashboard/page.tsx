@@ -48,22 +48,20 @@ export default function Dashboard() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // Check session
+  // --- SESSION MANAGEMENT ---
   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
     };
-
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
-
     getSession();
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Load applications and stats with token if logged in
+  // --- LOAD DATA ---
   const loadData = async () => {
     if (!session) {
       setApplications([]);
@@ -71,51 +69,61 @@ export default function Dashboard() {
       return;
     }
 
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${session.access_token}`,
-    };
-
     try {
-      const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, { headers }).then(res => res.json());
+      const headers = { Authorization: `Bearer ${session.access_token}` };
+
+      const appsRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, { headers });
+      if (!appsRes.ok) throw new Error("Failed to fetch applications");
+      const apps = await appsRes.json();
       setApplications(apps);
 
-      const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`, { headers }).then(res => res.json());
+      const statsRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`, { headers });
+      if (!statsRes.ok) throw new Error("Failed to fetch stats");
+      const statsData = await statsRes.json();
       setStats(statsData);
     } catch (err) {
-      console.error("Failed to load data", err);
+      console.error("Error loading data:", err);
       setApplications([]);
       setStats({ total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
     }
   };
 
-  // Reload data whenever session changes
   useEffect(() => {
     loadData();
   }, [session]);
 
+  // --- HANDLERS ---
   const handleAddApplication = async () => {
-    if (!session) return alert("You must be logged in to save applications!");
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify(formData),
-    });
-    setIsAddModalOpen(false);
-    setFormData({ role: "", company: "", status: "Applied" });
-    await loadData();
+    if (!session) return alert("Login to add applications");
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify(formData),
+      });
+      setIsAddModalOpen(false);
+      setFormData({ role: "", company: "", status: "Applied" });
+      await loadData();
+    } catch {
+      alert("Failed to add application. Try again.");
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!session) return alert("You must be logged in to delete applications!");
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    await loadData();
+    if (!session) return alert("Login to delete applications");
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      await loadData();
+    } catch {
+      alert("Failed to delete application. Try again.");
+    }
   };
 
   const handleGenerateAI = async () => {
-    if (!session) return alert("You must be logged in to use AI assistant!");
+    if (!session) return alert("Login to use job assistant");
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiError(null);
@@ -135,17 +143,15 @@ export default function Dashboard() {
     ? applications
     : applications.filter(a => a.status === statusFilter);
 
+  // --- RENDER ---
   return (
     <div className="min-h-screen bg-gray-50 p-8 md:p-10 text-gray-900">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         <button
-          onClick={() => setIsAddModalOpen(true)}
-          disabled={!session}
-          className={`px-4 py-2 rounded transition ${
-            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-          }`}
+          onClick={() => session ? setIsAddModalOpen(true) : alert("Login to add applications")}
+          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
         >
           + Add Application
         </button>
@@ -190,9 +196,8 @@ export default function Dashboard() {
               <div className="flex gap-4 items-center">
                 <StatusBadge status={app.status} />
                 <button
-                  onClick={() => handleDelete(app.id)}
-                  disabled={!session}
-                  className={`hover:underline ${!session ? "text-gray-400 cursor-not-allowed" : "text-red-500"}`}
+                  onClick={() => session ? handleDelete(app.id) : alert("Login to delete applications")}
+                  className="text-red-500 hover:underline"
                 >
                   Delete
                 </button>
@@ -200,7 +205,7 @@ export default function Dashboard() {
             </div>
           ))
         ) : (
-          <EmptyState onAddClick={() => session && setIsAddModalOpen(true)} />
+          <EmptyState onAddClick={() => session ? setIsAddModalOpen(true) : alert("Login to add applications")} />
         )}
       </div>
 
@@ -213,14 +218,10 @@ export default function Dashboard() {
           onChange={e => setAiPrompt(e.target.value)}
           className="w-full p-3 border rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           rows={4}
-          disabled={!session}
         />
         <button
           onClick={handleGenerateAI}
-          disabled={aiLoading || !session}
-          className={`px-4 py-2 rounded transition ${
-            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-          }`}
+          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
         >
           {aiLoading ? "Generating..." : "Ask Assistant"}
         </button>
@@ -242,20 +243,17 @@ export default function Dashboard() {
             value={formData.role}
             onChange={e => setFormData({ ...formData, role: e.target.value })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           />
           <input
             placeholder="Company"
             value={formData.company}
             onChange={e => setFormData({ ...formData, company: e.target.value })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           />
           <select
             value={formData.status}
             onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
             className="border p-2 w-full rounded"
-            disabled={!session}
           >
             <option value="Applied">Applied</option>
             <option value="Interviewing">Interviewing</option>
@@ -264,10 +262,7 @@ export default function Dashboard() {
           </select>
           <button
             onClick={handleAddApplication}
-            disabled={!session}
-            className={`w-full p-2 rounded transition ${
-              session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
+            className="w-full p-2 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
           >
             Save Application
           </button>
