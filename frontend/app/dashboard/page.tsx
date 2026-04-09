@@ -57,7 +57,6 @@ export default function Dashboard() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
-      loadData(); // refresh data after login/logout
     });
 
     getSession();
@@ -65,13 +64,18 @@ export default function Dashboard() {
   }, []);
 
   const loadData = async () => {
+    // Send auth token if logged in
+    const headers: Record<string, string> = {};
+    if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
     try {
-      const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`).then(res => res.json());
+      const apps = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, { headers }).then(res => res.json());
       setApplications(apps);
 
-      const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`).then(res => res.json());
+      const statsData = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/stats/summary`, { headers }).then(res => res.json());
       setStats(statsData);
     } catch (err) {
+      console.error("Failed to load data", err);
       setApplications([]);
       setStats({ total: 0, applied: 0, interviewing: 0, offer: 0, rejected: 0 });
     }
@@ -79,13 +83,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [session]);
 
   const handleAddApplication = async () => {
-    if (!session) return alert("Login to add applications");
+    if (!session) return alert("You must be logged in to save applications!");
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify(formData),
     });
     setIsAddModalOpen(false);
@@ -94,13 +98,16 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!session) return alert("Login to delete applications");
-    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, { method: "DELETE" });
+    if (!session) return alert("You must be logged in to delete applications!");
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/applications/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
     await loadData();
   };
 
   const handleGenerateAI = async () => {
-    if (!session) return alert("Login to use AI assistant");
+    if (!session) return alert("You must be logged in to use AI assistant!");
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiError(null);
@@ -128,7 +135,9 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Dashboard</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
+          className={`px-4 py-2 rounded transition ${
+            session ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-gray-300 text-gray-600"
+          }`}
         >
           + Add Application
         </button>
@@ -175,7 +184,7 @@ export default function Dashboard() {
                 <StatusBadge status={app.status} />
                 <button
                   onClick={() => handleDelete(app.id)}
-                  className="text-red-500 hover:underline"
+                  className={`hover:underline ${!session ? "text-gray-400 cursor-not-allowed" : "text-red-500"}`}
                 >
                   Delete
                 </button>
@@ -199,18 +208,10 @@ export default function Dashboard() {
         />
         <button
           onClick={handleGenerateAI}
-          disabled={aiLoading}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500 transition"
+          className={`px-4 py-2 rounded transition ${!session ? "bg-gray-300 text-gray-600" : "bg-indigo-600 text-white hover:bg-indigo-500"}`}
         >
           {aiLoading ? "Generating..." : "Ask Assistant"}
         </button>
-        {aiError && <p className="text-red-500 mt-2">{aiError}</p>}
-        {aiResponse && (
-          <div className="mt-4 p-4 bg-gray-100 rounded">
-            <h3 className="font-semibold mb-2">Assistant's Response:</h3>
-            <p>{aiResponse}</p>
-          </div>
-        )}
       </div>
 
       {/* ADD MODAL */}
@@ -221,18 +222,15 @@ export default function Dashboard() {
             placeholder="Role"
             value={formData.role}
             onChange={e => setFormData({ ...formData, role: e.target.value })}
-            className="border p-2 w-full rounded"
           />
           <input
             placeholder="Company"
             value={formData.company}
             onChange={e => setFormData({ ...formData, company: e.target.value })}
-            className="border p-2 w-full rounded"
           />
           <select
             value={formData.status}
             onChange={e => setFormData({ ...formData, status: e.target.value as Status })}
-            className="border p-2 w-full rounded"
           >
             <option value="Applied">Applied</option>
             <option value="Interviewing">Interviewing</option>
@@ -241,7 +239,7 @@ export default function Dashboard() {
           </select>
           <button
             onClick={handleAddApplication}
-            className="bg-indigo-600 text-white p-2 w-full rounded hover:bg-indigo-500 transition"
+            className={`${!session ? "bg-gray-300 text-gray-600" : "bg-indigo-600 text-white hover:bg-indigo-500"} w-full p-2 rounded`}
           >
             Save Application
           </button>
