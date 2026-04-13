@@ -9,9 +9,6 @@ This project simulates a real-world SaaS product and demonstrates full-stack dev
 
 https://ai-application-tracker-platform 
 
-# Screenshots
-
-(Add screenshots here)
 
 Dashboard Overview  
 Applications Modal  
