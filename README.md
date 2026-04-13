@@ -9,13 +9,7 @@ This project simulates a real-world SaaS product and demonstrates full-stack dev
 
 https://ai-application-tracker-platform 
 
-
-Dashboard Overview  
-Applications Modal  
-AI Insights Modal  
-Status Filtering  
-
-
+ 
 # Features
 
 ## Dashboard Analytics
